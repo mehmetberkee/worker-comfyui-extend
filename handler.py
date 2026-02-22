@@ -1,6 +1,7 @@
 import runpod
 from runpod.serverless.utils import rp_upload
 import json
+import copy
 import urllib.request
 import urllib.parse
 import time
@@ -179,13 +180,117 @@ def validate_input(job_input):
 
     # Optional: API key for Comfy.org API Nodes, passed per-request
     comfy_org_api_key = job_input.get("comfy_org_api_key")
+    prompt = job_input.get("prompt")
+    if prompt is not None and not isinstance(prompt, str):
+        return None, "'prompt' must be a string"
+
+    image_name = job_input.get("image_name")
+    if image_name is not None and not isinstance(image_name, str):
+        return None, "'image_name' must be a string"
+
+    workflow_overrides = job_input.get("workflow_overrides")
+    if workflow_overrides is not None:
+        if not isinstance(workflow_overrides, list):
+            return None, "'workflow_overrides' must be a list"
+        for idx, override in enumerate(workflow_overrides):
+            if not isinstance(override, dict):
+                return None, f"'workflow_overrides[{idx}]' must be an object"
+            if (
+                "node_id" not in override
+                or "input_name" not in override
+                or "value" not in override
+            ):
+                return (
+                    None,
+                    "'workflow_overrides' items must include 'node_id', 'input_name', and 'value'",
+                )
+            if not isinstance(override["input_name"], str):
+                return None, f"'workflow_overrides[{idx}].input_name' must be a string"
 
     # Return validated data and no error
     return {
         "workflow": workflow,
         "images": images,
         "comfy_org_api_key": comfy_org_api_key,
+        "prompt": prompt,
+        "image_name": image_name,
+        "workflow_overrides": workflow_overrides,
     }, None
+
+
+def _find_candidate_node_ids(workflow, class_type, input_name):
+    """
+    Return node ids that match class type and have the specified input.
+    """
+    candidates = []
+    for node_id, node_data in workflow.items():
+        if not isinstance(node_data, dict):
+            continue
+        if node_data.get("class_type") != class_type:
+            continue
+        inputs = node_data.get("inputs", {})
+        if isinstance(inputs, dict) and input_name in inputs:
+            candidates.append(node_id)
+    return candidates
+
+
+def apply_workflow_input_overrides(
+    workflow, prompt=None, image_name=None, workflow_overrides=None
+):
+    """
+    Apply runtime overrides to workflow inputs.
+    """
+    updated_workflow = copy.deepcopy(workflow)
+
+    if prompt is not None:
+        clip_nodes = _find_candidate_node_ids(updated_workflow, "CLIPTextEncode", "text")
+        if not clip_nodes:
+            raise ValueError(
+                "No CLIPTextEncode node with 'text' input found for 'prompt' override."
+            )
+
+        preferred_node = None
+        for node_id in clip_nodes:
+            meta = updated_workflow[node_id].get("_meta", {})
+            title = str(meta.get("title", "")).lower()
+            if "positive" in title and "prompt" in title:
+                preferred_node = node_id
+                break
+
+        target_node = preferred_node if preferred_node is not None else clip_nodes[0]
+        updated_workflow[target_node]["inputs"]["text"] = prompt
+
+    if image_name is not None:
+        load_image_nodes = _find_candidate_node_ids(updated_workflow, "LoadImage", "image")
+        if not load_image_nodes:
+            raise ValueError(
+                "No LoadImage node with 'image' input found for 'image_name' override."
+            )
+        updated_workflow[load_image_nodes[0]]["inputs"]["image"] = image_name
+
+    if workflow_overrides:
+        for override in workflow_overrides:
+            node_id = str(override["node_id"])
+            input_name = override["input_name"]
+            value = override["value"]
+
+            if node_id not in updated_workflow:
+                raise ValueError(
+                    f"workflow_overrides target node '{node_id}' does not exist in workflow."
+                )
+            inputs = updated_workflow[node_id].get("inputs")
+            if not isinstance(inputs, dict):
+                raise ValueError(
+                    f"workflow_overrides target node '{node_id}' has no valid 'inputs' object."
+                )
+            if input_name not in inputs:
+                raise ValueError(
+                    f"workflow_overrides input '{input_name}' does not exist on node '{node_id}'."
+                )
+
+            inputs[input_name] = value
+
+    return updated_workflow
 
 
 def check_server(url, retries=500, delay=50):
@@ -531,6 +636,16 @@ def handler(job):
     # Extract validated data
     workflow = validated_data["workflow"]
     input_images = validated_data.get("images")
+
+    try:
+        workflow = apply_workflow_input_overrides(
+            workflow,
+            prompt=validated_data.get("prompt"),
+            image_name=validated_data.get("image_name"),
+            workflow_overrides=validated_data.get("workflow_overrides"),
+        )
+    except ValueError as e:
+        return {"error": str(e)}
 
     # Make sure that the ComfyUI HTTP API is available before proceeding
     if not check_server(

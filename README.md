@@ -84,6 +84,9 @@ The following tables describe the fields within the `input` object:
 | `input.workflow`          | Object | Yes      | The ComfyUI workflow exported in the [required format](#getting-the-workflow-json).                                                        |
 | `input.images`            | Array  | No       | Optional array of input images. Each image is uploaded to ComfyUI's `input` directory and can be referenced by its `name` in the workflow. |
 | `input.comfy_org_api_key` | String | No       | Optional per-request Comfy.org API key for API Nodes. Overrides the `COMFY_ORG_API_KEY` environment variable if both are set.              |
+| `input.prompt`            | String | No       | Optional runtime prompt override. Updates the first matching `CLIPTextEncode` node's `text` input (prefers node title containing `Positive Prompt`). |
+| `input.image_name`        | String | No       | Optional runtime image filename override. Updates the first matching `LoadImage` node's `image` input.                                      |
+| `input.workflow_overrides`| Array  | No       | Optional fine-grained overrides for workflow inputs. Each item must contain `node_id`, `input_name`, and `value`.                           |
 
 #### `input.images` Object
 
@@ -97,6 +100,39 @@ Each object within the `input.images` array must contain:
 > [!NOTE]
 >
 > **Size Limits:** RunPod endpoints have request size limits (e.g., 10MB for `/run`, 20MB for `/runsync`). Large base64 input images can exceed these limits. See [RunPod Docs](https://docs.runpod.io/docs/serverless-endpoint-urls).
+
+#### Runtime Workflow Overrides
+
+You can keep a reusable workflow and inject variable values per request:
+
+- Use `input.prompt` to update prompt text.
+- Use `input.image_name` to change the `LoadImage` filename used by your workflow.
+- Use `input.workflow_overrides` for exact node/input replacements.
+
+Example:
+
+```json
+{
+  "input": {
+    "workflow": { "...": "..." },
+    "prompt": "extend scene to the right, preserve text area",
+    "image_name": "input.png",
+    "images": [
+      {
+        "name": "input.png",
+        "image": "data:image/png;base64,iVBOR..."
+      }
+    ],
+    "workflow_overrides": [
+      {
+        "node_id": "156",
+        "input_name": "seed",
+        "value": 123456789
+      }
+    ]
+  }
+}
+```
 
 ### Output
 

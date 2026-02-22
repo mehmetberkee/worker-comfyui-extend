@@ -9,6 +9,7 @@ ARG COMFYUI_VERSION=latest
 ARG CUDA_VERSION_FOR_COMFY
 ARG ENABLE_PYTORCH_UPGRADE=false
 ARG PYTORCH_INDEX_URL
+ARG CUSTOM_NODES=""
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -80,6 +81,12 @@ RUN chmod +x /start.sh
 # Add script to install custom nodes
 COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
 RUN chmod +x /usr/local/bin/comfy-node-install
+
+# Install optional custom nodes at build-time.
+# Example: --build-arg CUSTOM_NODES="rgthree-comfy comfyui-lanpaint"
+RUN if [ -n "${CUSTOM_NODES}" ]; then \
+      comfy-node-install ${CUSTOM_NODES}; \
+    fi
 
 # Prevent pip from asking for confirmation during uninstall steps in custom nodes
 ENV PIP_NO_INPUT=1
