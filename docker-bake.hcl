@@ -182,3 +182,12 @@ target "base-cuda12-8-1" {
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base-cuda12.8.1"]
 }
 
+target "extendpro" {
+  inherits = ["base"]
+  target   = "base"
+  args = {
+    CUSTOM_NODES = "LanPaint rgthree-comfy"
+  }
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:extendpro-v1"]
+}
+
