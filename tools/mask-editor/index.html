@@ -1,0 +1,446 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mask PNG Builder</title>
+  <style>
+    :root {
+      --bg: #0e1116;
+      --panel: #171b22;
+      --panel-2: #1e2430;
+      --text: #e9edf5;
+      --muted: #9aa5b5;
+      --accent: #53b8ff;
+      --accent-2: #8ef0c7;
+      --danger: #ff6f91;
+      --border: #2b3240;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Aptos", "Trebuchet MS", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #21304a 0%, transparent 55%),
+        radial-gradient(900px 400px at 90% 0%, #20353b 0%, transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 6px;
+      letter-spacing: 0.3px;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 14px;
+      line-height: 1.4;
+    }
+    .group { margin-bottom: 14px; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    input[type="file"],
+    input[type="range"],
+    button {
+      width: 100%;
+    }
+    input[type="range"] { accent-color: var(--accent); }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #1b2230;
+      color: var(--text);
+      padding: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary {
+      background: linear-gradient(90deg, #2a7ecc, #30a5c0);
+      border: none;
+    }
+    button.secondary {
+      background: linear-gradient(90deg, #347463, #3b6f52);
+      border: none;
+    }
+    button.warn {
+      background: linear-gradient(90deg, #8f4060, #a6476a);
+      border: none;
+    }
+    .tool-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .tool-toggle button.active {
+      outline: 2px solid var(--accent-2);
+    }
+    .checkbox {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 20px;
+    }
+    .stage {
+      background: #11151d;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: auto;
+      min-height: 70vh;
+      padding: 10px;
+      position: relative;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      border-radius: 10px;
+      margin: 0 auto;
+      background:
+        linear-gradient(45deg, #222a38 25%, transparent 25%) -8px 0/16px 16px,
+        linear-gradient(-45deg, #222a38 25%, transparent 25%) -8px 0/16px 16px,
+        linear-gradient(45deg, transparent 75%, #222a38 75%) -8px 0/16px 16px,
+        linear-gradient(-45deg, transparent 75%, #222a38 75%) -8px 0/16px 16px,
+        #1a2230;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    @media (max-width: 940px) {
+      .wrap {
+        grid-template-columns: 1fr;
+      }
+      .stage {
+        min-height: 54vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <h1>Mask PNG Builder</h1>
+      <p class="hint">Upload a normal PNG, paint mask area, then export alpha-mask PNG for your ComfyUI LoadImage input.</p>
+
+      <div class="group">
+        <label for="fileInput">Image</label>
+        <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp">
+      </div>
+
+      <div class="group">
+        <label>Tool</label>
+        <div class="tool-toggle">
+          <button id="paintBtn" class="active" type="button">Paint Mask</button>
+          <button id="eraseBtn" type="button">Erase</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <label for="brushSize">Brush Size: <span id="brushSizeValue">48</span> px</label>
+        <input id="brushSize" type="range" min="4" max="280" value="48">
+      </div>
+
+      <div class="group row">
+        <button id="clearBtn" type="button">Clear Mask</button>
+        <button id="fillBtn" type="button">Fill Mask</button>
+      </div>
+
+      <div class="group">
+        <label class="checkbox">
+          <input id="invertPreview" type="checkbox">
+          <span>Invert preview (if mask direction looks opposite)</span>
+        </label>
+      </div>
+
+      <div class="group row">
+        <button id="downloadBtn" class="primary" type="button">Download PNG</button>
+        <button id="downloadInvBtn" class="secondary" type="button">Download Inverted</button>
+      </div>
+
+      <button id="downloadMaskBtn" class="warn" type="button">Download Mask Only</button>
+
+      <p class="status" id="status">Load an image to start.</p>
+    </aside>
+
+    <main class="stage panel">
+      <canvas id="view"></canvas>
+    </main>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const view = document.getElementById("view");
+    const ctx = view.getContext("2d");
+    const maskCanvas = document.createElement("canvas");
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    const imgCanvas = document.createElement("canvas");
+    const imgCtx = imgCanvas.getContext("2d");
+    const overlayCanvas = document.createElement("canvas");
+    const overlayCtx = overlayCanvas.getContext("2d");
+
+    const brushSize = document.getElementById("brushSize");
+    const brushSizeValue = document.getElementById("brushSizeValue");
+    const paintBtn = document.getElementById("paintBtn");
+    const eraseBtn = document.getElementById("eraseBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const fillBtn = document.getElementById("fillBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const downloadInvBtn = document.getElementById("downloadInvBtn");
+    const downloadMaskBtn = document.getElementById("downloadMaskBtn");
+    const invertPreview = document.getElementById("invertPreview");
+    const statusEl = document.getElementById("status");
+
+    let hasImage = false;
+    let drawing = false;
+    let mode = "paint";
+
+    function setStatus(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function setTool(nextMode) {
+      mode = nextMode;
+      paintBtn.classList.toggle("active", mode === "paint");
+      eraseBtn.classList.toggle("active", mode === "erase");
+      setStatus(mode === "paint" ? "Paint mode active." : "Erase mode active.");
+    }
+
+    function getCanvasPoint(event) {
+      const rect = view.getBoundingClientRect();
+      const x = (event.clientX - rect.left) * (view.width / rect.width);
+      const y = (event.clientY - rect.top) * (view.height / rect.height);
+      return { x, y };
+    }
+
+    function drawDot(x, y) {
+      const r = Number(brushSize.value) / 2;
+      maskCtx.save();
+      if (mode === "paint") {
+        maskCtx.globalCompositeOperation = "source-over";
+        maskCtx.fillStyle = "rgba(255,255,255,1)";
+      } else {
+        maskCtx.globalCompositeOperation = "destination-out";
+        maskCtx.fillStyle = "rgba(0,0,0,1)";
+      }
+      maskCtx.beginPath();
+      maskCtx.arc(x, y, r, 0, Math.PI * 2);
+      maskCtx.fill();
+      maskCtx.restore();
+    }
+
+    function drawLine(from, to) {
+      const dist = Math.hypot(to.x - from.x, to.y - from.y);
+      const step = Math.max(1, Number(brushSize.value) * 0.2);
+      const steps = Math.ceil(dist / step);
+      for (let i = 0; i <= steps; i++) {
+        const t = steps === 0 ? 0 : i / steps;
+        drawDot(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t);
+      }
+    }
+
+    function render() {
+      if (!hasImage) {
+        ctx.clearRect(0, 0, view.width, view.height);
+        return;
+      }
+      ctx.clearRect(0, 0, view.width, view.height);
+      ctx.drawImage(imgCanvas, 0, 0);
+
+      const tmp = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const preview = new ImageData(maskCanvas.width, maskCanvas.height);
+      const inv = invertPreview.checked;
+      for (let i = 0; i < tmp.data.length; i += 4) {
+        const alpha = tmp.data[i + 3];
+        const v = inv ? 255 - alpha : alpha;
+        preview.data[i] = 255;
+        preview.data[i + 1] = 60;
+        preview.data[i + 2] = 90;
+        preview.data[i + 3] = Math.round(v * 0.45);
+      }
+      overlayCtx.putImageData(preview, 0, 0);
+      ctx.drawImage(overlayCanvas, 0, 0);
+    }
+
+    function resizeAll(width, height) {
+      for (const c of [view, maskCanvas, imgCanvas, overlayCanvas]) {
+        c.width = width;
+        c.height = height;
+      }
+    }
+
+    function loadImage(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          resizeAll(img.width, img.height);
+          imgCtx.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+          imgCtx.drawImage(img, 0, 0);
+          maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+          hasImage = true;
+          render();
+          setStatus(`Loaded ${file.name} (${img.width}x${img.height}).`);
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function buildAlphaPng(inverted) {
+      const outCanvas = document.createElement("canvas");
+      outCanvas.width = imgCanvas.width;
+      outCanvas.height = imgCanvas.height;
+      const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
+
+      outCtx.drawImage(imgCanvas, 0, 0);
+
+      const out = outCtx.getImageData(0, 0, outCanvas.width, outCanvas.height);
+      const mask = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+
+      for (let i = 0; i < out.data.length; i += 4) {
+        const maskAlpha = mask.data[i + 3];
+        out.data[i + 3] = inverted ? 255 - maskAlpha : maskAlpha;
+      }
+
+      outCtx.putImageData(out, 0, 0);
+      return outCanvas;
+    }
+
+    function buildMaskOnlyPng() {
+      const outCanvas = document.createElement("canvas");
+      outCanvas.width = maskCanvas.width;
+      outCanvas.height = maskCanvas.height;
+      const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
+      const mask = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const out = new ImageData(maskCanvas.width, maskCanvas.height);
+
+      for (let i = 0; i < out.data.length; i += 4) {
+        const a = mask.data[i + 3];
+        out.data[i] = a;
+        out.data[i + 1] = a;
+        out.data[i + 2] = a;
+        out.data[i + 3] = 255;
+      }
+      outCtx.putImageData(out, 0, 0);
+      return outCanvas;
+    }
+
+    function triggerDownload(canvas, filename) {
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+    }
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      loadImage(file);
+    });
+
+    brushSize.addEventListener("input", () => {
+      brushSizeValue.textContent = brushSize.value;
+    });
+
+    paintBtn.addEventListener("click", () => setTool("paint"));
+    eraseBtn.addEventListener("click", () => setTool("erase"));
+
+    clearBtn.addEventListener("click", () => {
+      if (!hasImage) return;
+      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      render();
+      setStatus("Mask cleared.");
+    });
+
+    fillBtn.addEventListener("click", () => {
+      if (!hasImage) return;
+      maskCtx.globalCompositeOperation = "source-over";
+      maskCtx.fillStyle = "rgba(255,255,255,1)";
+      maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+      render();
+      setStatus("Mask filled.");
+    });
+
+    invertPreview.addEventListener("change", render);
+
+    downloadBtn.addEventListener("click", () => {
+      if (!hasImage) return;
+      triggerDownload(buildAlphaPng(false), "input-alpha-mask.png");
+      setStatus("Downloaded input-alpha-mask.png");
+    });
+
+    downloadInvBtn.addEventListener("click", () => {
+      if (!hasImage) return;
+      triggerDownload(buildAlphaPng(true), "input-alpha-mask-inverted.png");
+      setStatus("Downloaded input-alpha-mask-inverted.png");
+    });
+
+    downloadMaskBtn.addEventListener("click", () => {
+      if (!hasImage) return;
+      triggerDownload(buildMaskOnlyPng(), "mask-only.png");
+      setStatus("Downloaded mask-only.png");
+    });
+
+    view.addEventListener("pointerdown", (e) => {
+      if (!hasImage) return;
+      drawing = true;
+      view.setPointerCapture(e.pointerId);
+      const p = getCanvasPoint(e);
+      view._lastPoint = p;
+      drawDot(p.x, p.y);
+      render();
+    });
+
+    view.addEventListener("pointermove", (e) => {
+      if (!drawing || !hasImage) return;
+      const p = getCanvasPoint(e);
+      drawLine(view._lastPoint, p);
+      view._lastPoint = p;
+      render();
+    });
+
+    function endDraw() {
+      drawing = false;
+      view._lastPoint = null;
+    }
+
+    view.addEventListener("pointerup", endDraw);
+    view.addEventListener("pointercancel", endDraw);
+    view.addEventListener("pointerleave", endDraw);
+  </script>
+</body>
+</html>
+
+
