@@ -188,6 +188,5 @@ target "extendpro" {
   args = {
     CUSTOM_NODES = "LanPaint rgthree-comfy"
   }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:extendpro-v1"]
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}"]
 }
-
