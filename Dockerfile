@@ -158,8 +158,7 @@ RUN if [ "$MODEL_TYPE" = "extendpro" ]; then \
       if [ -f /tmp/extendpro-assets/pro_extend_000002000.safetensors ]; then \
         cp /tmp/extendpro-assets/pro_extend_000002000.safetensors models/loras/pro_extend_000002000.safetensors; \
       else \
-        echo "Missing ExtendPro LoRA. Place pro_extend_000002000.safetensors in assets/extendpro/."; \
-        exit 1; \
+        wget -q -O models/loras/pro_extend_000002000.safetensors https://huggingface.co/mberke11/extend_klein_lora_1750/resolve/main/pro_extend_000002000.safetensors; \
       fi; \
     fi
 
