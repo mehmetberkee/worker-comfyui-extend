@@ -152,7 +152,7 @@ RUN if [ "$MODEL_TYPE" = "z-image-turbo" ]; then \
 
 RUN if [ "$MODEL_TYPE" = "extendpro" ]; then \
       set -e; \
-      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/unet/flux-2-klein-9b.safetensors https://huggingface.co/black-forest-labs/FLUX.2-klein-9B/resolve/main/flux-2-klein-9b.safetensors && \
+      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/diffusion_models/flux-2-klein-9b.safetensors https://huggingface.co/black-forest-labs/FLUX.2-klein-9B/resolve/main/flux-2-klein-9b.safetensors && \
       wget -q -O models/text_encoders/qwen_3_8b.safetensors https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b.safetensors && \
       wget -q -O models/vae/flux2-vae.safetensors https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/vae/flux2-vae.safetensors; \
       if [ -f /tmp/extendpro-assets/pro_extend_000002000.safetensors ]; then \
@@ -160,6 +160,10 @@ RUN if [ "$MODEL_TYPE" = "extendpro" ]; then \
       else \
         wget -q -O models/loras/pro_extend_000002000.safetensors https://huggingface.co/mberke11/extend_klein_lora_1750/resolve/main/pro_extend_000002000.safetensors; \
       fi; \
+      test -s models/diffusion_models/flux-2-klein-9b.safetensors; \
+      test -s models/text_encoders/qwen_3_8b.safetensors; \
+      test -s models/vae/flux2-vae.safetensors; \
+      test -s models/loras/pro_extend_000002000.safetensors; \
     fi
 
 # Stage 3: Final image

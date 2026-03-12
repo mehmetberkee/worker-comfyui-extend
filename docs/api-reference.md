@@ -109,7 +109,7 @@ CLIPTextEncode (107) ──→ FluxGuidance ────────────
 | Model | Tip | Path |
 |-------|-----|------|
 | `flux-2-klein-9b.safetensors` | UNET | `models/diffusion_models/` |
-| `qwen_3_8b.safetensors` | CLIP | `models/clip/` |
+| `qwen_3_8b.safetensors` | CLIP | `models/text_encoders/` |
 | `pro_extend_000002000.safetensors` | LoRA | `models/loras/` |
 | `flux2-vae.safetensors` | VAE | `models/vae/` |
 

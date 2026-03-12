@@ -62,49 +62,59 @@ def run_network_volume_diagnostics():
         print("=" * 70)
         return
 
-    print("\n[3] Checking directory structure...")
-    models_dir = os.path.join(runpod_volume, "models")
-    if os.path.isdir(models_dir):
-        print(f"    FOUND: {models_dir}")
-    else:
-        print(f"    NOT FOUND: {models_dir}")
-        print("    PROBLEM: The 'models' directory does not exist.")
-        print("    Create this structure on your network volume:")
-        print_expected_structure()
-        print("=" * 70)
-        return
+    print("\n[3] Resolving configured model roots...")
+    model_roots = get_model_roots(extra_model_paths_file)
+    if not model_roots:
+        model_roots = [os.path.join(runpod_volume, "models")]
+
+    for model_root in model_roots:
+        if os.path.isdir(model_root):
+            print(f"    FOUND: {model_root}")
+        else:
+            print(f"    NOT FOUND: {model_root}")
 
     print("\n[4] Scanning model directories...")
     found_any_models = False
-    for model_type, extensions in MODEL_TYPES.items():
-        model_path = os.path.join(models_dir, model_type)
-        if not os.path.isdir(model_path):
-            print(f"\n    {model_type}/: (directory not found)")
-            continue
+    found_zero_byte_models = False
+    seen_models = {}
+    for model_root in model_roots:
+        print(f"\n    Root: {model_root}")
+        for model_type, extensions in MODEL_TYPES.items():
+            model_path = os.path.join(model_root, model_type)
+            if not os.path.isdir(model_path):
+                print(f"      {model_type}/: (directory not found)")
+                continue
 
-        files = []
-        try:
-            for filename in os.listdir(model_path):
-                file_path = os.path.join(model_path, filename)
-                if not os.path.isfile(file_path):
-                    continue
-                ext = os.path.splitext(filename)[1].lower()
-                if ext in extensions:
-                    size = os.path.getsize(file_path)
-                    files.append(f"{filename} ({format_size(size)})")
-                    found_any_models = True
-                else:
-                    files.append(f"{filename} (ignored - invalid extension)")
-        except Exception as e:
-            print(f"    {model_type}/: Error reading directory - {e}")
-            continue
+            files = []
+            try:
+                for filename in os.listdir(model_path):
+                    file_path = os.path.join(model_path, filename)
+                    if not os.path.isfile(file_path):
+                        continue
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext in extensions:
+                        size = os.path.getsize(file_path)
+                        if size == 0:
+                            files.append(
+                                f"{filename} ({format_size(size)}) <- PROBLEM: empty file"
+                            )
+                            found_zero_byte_models = True
+                        else:
+                            files.append(f"{filename} ({format_size(size)})")
+                        found_any_models = True
+                        seen_models.setdefault((model_type, filename), []).append(file_path)
+                    else:
+                        files.append(f"{filename} (ignored - invalid extension)")
+            except Exception as e:
+                print(f"      {model_type}/: Error reading directory - {e}")
+                continue
 
-        if files:
-            print(f"\n    {model_type}/:")
-            for entry in files:
-                print(f"      - {entry}")
-        else:
-            print(f"\n    {model_type}/: (empty)")
+            if files:
+                print(f"      {model_type}/:")
+                for entry in files:
+                    print(f"        - {entry}")
+            else:
+                print(f"      {model_type}/: (empty)")
 
     print("\n[5] Summary")
     if found_any_models:
@@ -112,9 +122,48 @@ def run_network_volume_diagnostics():
     else:
         print("    No valid model files found on network volume.")
         print("    Check file extensions and model folder placement.")
+    if found_zero_byte_models:
+        print("    PROBLEM: One or more model files are zero bytes and will fail to load.")
+        print("    Re-upload or delete the empty files so the baked image models can be used.")
+    duplicate_models = {
+        key: paths for key, paths in seen_models.items() if len(paths) > 1
+    }
+    if duplicate_models:
+        print("    WARNING: Duplicate model filenames were found across model roots.")
+        print("    Remove duplicates to avoid loading the wrong copy.")
+        for (model_type, filename), paths in duplicate_models.items():
+            print(f"    {model_type}/{filename}")
+            for path in paths:
+                print(f"      - {path}")
 
     print_expected_structure()
     print("=" * 70)
+
+
+def get_model_roots(extra_model_paths_file):
+    """Read extra model path roots from ComfyUI config."""
+    if not os.path.isfile(extra_model_paths_file):
+        return []
+
+    try:
+        with open(extra_model_paths_file, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as exc:
+        print(f"    WARNING: Could not parse {extra_model_paths_file}: {exc}")
+        return []
+
+    roots = []
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        if not stripped.startswith("base_path:"):
+            continue
+        base_path = stripped.split(":", 1)[1].strip()
+        if not base_path:
+            continue
+        roots.append(os.path.join(base_path, "models"))
+
+    # Preserve order while removing duplicates.
+    return list(dict.fromkeys(roots))
 
 
 def print_expected_structure():
