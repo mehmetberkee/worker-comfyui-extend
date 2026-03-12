@@ -35,10 +35,6 @@ variable "CUSTOM_NODES" {
   default = ""
 }
 
-variable "HUGGINGFACE_ACCESS_TOKEN" {
-  default = ""
-}
-
 group "default" {
   targets = ["base", "sdxl", "sd3", "flux1-schnell", "flux1-dev", "flux1-dev-fp8", "z-image-turbo", "base-cuda12-8-1"]
 }
@@ -81,6 +77,7 @@ target "sd3" {
   context = "."
   dockerfile = "Dockerfile"
   target = "final"
+  secret = ["id=HUGGINGFACE_ACCESS_TOKEN,env=HUGGINGFACE_ACCESS_TOKEN"]
   args = {
     BASE_IMAGE = "${BASE_IMAGE}"
     COMFYUI_VERSION = "${COMFYUI_VERSION}"
@@ -89,7 +86,6 @@ target "sd3" {
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
     CUSTOM_NODES = "${CUSTOM_NODES}"
     MODEL_TYPE = "sd3"
-    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-sd3"]
   inherits = ["base"]
@@ -99,6 +95,7 @@ target "flux1-schnell" {
   context = "."
   dockerfile = "Dockerfile"
   target = "final"
+  secret = ["id=HUGGINGFACE_ACCESS_TOKEN,env=HUGGINGFACE_ACCESS_TOKEN"]
   args = {
     BASE_IMAGE = "${BASE_IMAGE}"
     COMFYUI_VERSION = "${COMFYUI_VERSION}"
@@ -107,7 +104,6 @@ target "flux1-schnell" {
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
     CUSTOM_NODES = "${CUSTOM_NODES}"
     MODEL_TYPE = "flux1-schnell"
-    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux1-schnell"]
   inherits = ["base"]
@@ -117,6 +113,7 @@ target "flux1-dev" {
   context = "."
   dockerfile = "Dockerfile"
   target = "final"
+  secret = ["id=HUGGINGFACE_ACCESS_TOKEN,env=HUGGINGFACE_ACCESS_TOKEN"]
   args = {
     BASE_IMAGE = "${BASE_IMAGE}"
     COMFYUI_VERSION = "${COMFYUI_VERSION}"
@@ -125,7 +122,6 @@ target "flux1-dev" {
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
     CUSTOM_NODES = "${CUSTOM_NODES}"
     MODEL_TYPE = "flux1-dev"
-    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux1-dev"]
   inherits = ["base"]
@@ -186,6 +182,7 @@ target "extendpro" {
   context = "."
   dockerfile = "Dockerfile"
   target   = "final"
+  secret = ["id=HUGGINGFACE_ACCESS_TOKEN,env=HUGGINGFACE_ACCESS_TOKEN"]
   args = {
     BASE_IMAGE = "${BASE_IMAGE}"
     COMFYUI_VERSION = "${COMFYUI_VERSION}"
@@ -194,7 +191,6 @@ target "extendpro" {
     PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
     CUSTOM_NODES = "LanPaint rgthree-comfy"
     MODEL_TYPE = "extendpro"
-    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
   tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-extendpro"]
 }

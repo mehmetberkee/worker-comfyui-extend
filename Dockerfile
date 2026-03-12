@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Build argument for base image selection
 ARG BASE_IMAGE=nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 
@@ -100,8 +102,6 @@ CMD ["/start.sh"]
 
 # Stage 2: Download models
 FROM base AS downloader
-
-ARG HUGGINGFACE_ACCESS_TOKEN
 # Set default model type if none is provided
 ARG MODEL_TYPE=flux1-dev-fp8
 
@@ -121,22 +121,28 @@ RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget -q -O models/vae/sdxl-vae-fp16-fix.safetensors https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/main/sdxl_vae.safetensors; \
     fi
 
-RUN if [ "$MODEL_TYPE" = "sd3" ]; then \
-      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/checkpoints/sd3_medium_incl_clips_t5xxlfp8.safetensors https://huggingface.co/stabilityai/stable-diffusion-3-medium/resolve/main/sd3_medium_incl_clips_t5xxlfp8.safetensors; \
+RUN --mount=type=secret,id=HUGGINGFACE_ACCESS_TOKEN,required=false if [ "$MODEL_TYPE" = "sd3" ]; then \
+      HF_TOKEN="$(cat /run/secrets/HUGGINGFACE_ACCESS_TOKEN 2>/dev/null || true)" && \
+      [ -n "${HF_TOKEN}" ] || { echo "Missing HUGGINGFACE_ACCESS_TOKEN build secret for sd3"; exit 1; } && \
+      wget -q --header="Authorization: Bearer ${HF_TOKEN}" -O models/checkpoints/sd3_medium_incl_clips_t5xxlfp8.safetensors https://huggingface.co/stabilityai/stable-diffusion-3-medium/resolve/main/sd3_medium_incl_clips_t5xxlfp8.safetensors; \
     fi
 
-RUN if [ "$MODEL_TYPE" = "flux1-schnell" ]; then \
-      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/unet/flux1-schnell.safetensors https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/flux1-schnell.safetensors && \
+RUN --mount=type=secret,id=HUGGINGFACE_ACCESS_TOKEN,required=false if [ "$MODEL_TYPE" = "flux1-schnell" ]; then \
+      HF_TOKEN="$(cat /run/secrets/HUGGINGFACE_ACCESS_TOKEN 2>/dev/null || true)" && \
+      [ -n "${HF_TOKEN}" ] || { echo "Missing HUGGINGFACE_ACCESS_TOKEN build secret for flux1-schnell"; exit 1; } && \
+      wget -q --header="Authorization: Bearer ${HF_TOKEN}" -O models/unet/flux1-schnell.safetensors https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/flux1-schnell.safetensors && \
       wget -q -O models/clip/clip_l.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors && \
       wget -q -O models/clip/t5xxl_fp8_e4m3fn.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors && \
-      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors; \
+      wget -q --header="Authorization: Bearer ${HF_TOKEN}" -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors; \
     fi
 
-RUN if [ "$MODEL_TYPE" = "flux1-dev" ]; then \
-      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/unet/flux1-dev.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors && \
+RUN --mount=type=secret,id=HUGGINGFACE_ACCESS_TOKEN,required=false if [ "$MODEL_TYPE" = "flux1-dev" ]; then \
+      HF_TOKEN="$(cat /run/secrets/HUGGINGFACE_ACCESS_TOKEN 2>/dev/null || true)" && \
+      [ -n "${HF_TOKEN}" ] || { echo "Missing HUGGINGFACE_ACCESS_TOKEN build secret for flux1-dev"; exit 1; } && \
+      wget -q --header="Authorization: Bearer ${HF_TOKEN}" -O models/unet/flux1-dev.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors && \
       wget -q -O models/clip/clip_l.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors && \
       wget -q -O models/clip/t5xxl_fp8_e4m3fn.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors && \
-      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors; \
+      wget -q --header="Authorization: Bearer ${HF_TOKEN}" -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors; \
     fi
 
 RUN if [ "$MODEL_TYPE" = "flux1-dev-fp8" ]; then \
@@ -150,9 +156,11 @@ RUN if [ "$MODEL_TYPE" = "z-image-turbo" ]; then \
       wget -q -O models/model_patches/Z-Image-Turbo-Fun-Controlnet-Union.safetensors https://huggingface.co/alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union/resolve/main/Z-Image-Turbo-Fun-Controlnet-Union.safetensors; \
     fi
 
-RUN if [ "$MODEL_TYPE" = "extendpro" ]; then \
+RUN --mount=type=secret,id=HUGGINGFACE_ACCESS_TOKEN,required=false if [ "$MODEL_TYPE" = "extendpro" ]; then \
       set -e; \
-      wget -q --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/diffusion_models/flux-2-klein-9b.safetensors https://huggingface.co/black-forest-labs/FLUX.2-klein-9B/resolve/main/flux-2-klein-9b.safetensors && \
+      HF_TOKEN="$(cat /run/secrets/HUGGINGFACE_ACCESS_TOKEN 2>/dev/null || true)" && \
+      [ -n "${HF_TOKEN}" ] || { echo "Missing HUGGINGFACE_ACCESS_TOKEN build secret for extendpro"; exit 1; } && \
+      wget -q --header="Authorization: Bearer ${HF_TOKEN}" -O models/diffusion_models/flux-2-klein-9b.safetensors https://huggingface.co/black-forest-labs/FLUX.2-klein-9B/resolve/main/flux-2-klein-9b.safetensors && \
       wget -q -O models/text_encoders/qwen_3_8b.safetensors https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b.safetensors && \
       wget -q -O models/vae/flux2-vae.safetensors https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/vae/flux2-vae.safetensors; \
       if [ -f /tmp/extendpro-assets/pro_extend_000002000.safetensors ]; then \
