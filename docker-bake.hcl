@@ -183,10 +183,18 @@ target "base-cuda12-8-1" {
 }
 
 target "extendpro" {
-  inherits = ["base"]
-  target   = "base"
+  context = "."
+  dockerfile = "Dockerfile"
+  target   = "final"
   args = {
+    BASE_IMAGE = "${BASE_IMAGE}"
+    COMFYUI_VERSION = "${COMFYUI_VERSION}"
+    CUDA_VERSION_FOR_COMFY = "${CUDA_VERSION_FOR_COMFY}"
+    ENABLE_PYTORCH_UPGRADE = "${ENABLE_PYTORCH_UPGRADE}"
+    PYTORCH_INDEX_URL = "${PYTORCH_INDEX_URL}"
     CUSTOM_NODES = "LanPaint rgthree-comfy"
+    MODEL_TYPE = "extendpro"
+    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
   }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}"]
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-extendpro"]
 }

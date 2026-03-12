@@ -3,5 +3,7 @@ venv
 .env
 data
 models
+assets/extendpro/*.safetensors
+.extendpro.env
 simulated_uploaded
 __pycache__

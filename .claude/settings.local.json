@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker version:*)",
+      "Bash(/c/Users/dxd3d/miniconda3/python:*)"
+    ]
+  }
+}

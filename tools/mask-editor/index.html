@@ -27,6 +27,23 @@
         var(--bg);
       min-height: 100vh;
     }
+    .tabs-shell {
+      max-width: 1200px;
+      margin: 24px auto 0;
+      padding: 0 16px;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      max-width: 420px;
+    }
+    .tabs button.active {
+      outline: 2px solid var(--accent-2);
+    }
+    .tab-pane.hidden {
+      display: none;
+    }
     .wrap {
       max-width: 1200px;
       margin: 24px auto;
@@ -148,55 +165,99 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <aside class="panel">
-      <h1>Mask PNG Builder</h1>
-      <p class="hint">Upload a normal PNG, paint mask area, then export alpha-mask PNG for your ComfyUI LoadImage input.</p>
-
-      <div class="group">
-        <label for="fileInput">Image</label>
-        <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp">
-      </div>
-
-      <div class="group">
-        <label>Tool</label>
-        <div class="tool-toggle">
-          <button id="paintBtn" class="active" type="button">Paint Mask</button>
-          <button id="eraseBtn" type="button">Erase</button>
-        </div>
-      </div>
-
-      <div class="group">
-        <label for="brushSize">Brush Size: <span id="brushSizeValue">48</span> px</label>
-        <input id="brushSize" type="range" min="4" max="280" value="48">
-      </div>
-
-      <div class="group row">
-        <button id="clearBtn" type="button">Clear Mask</button>
-        <button id="fillBtn" type="button">Fill Mask</button>
-      </div>
-
-      <div class="group">
-        <label class="checkbox">
-          <input id="invertPreview" type="checkbox">
-          <span>Invert preview (if mask direction looks opposite)</span>
-        </label>
-      </div>
-
-      <div class="group row">
-        <button id="downloadBtn" class="primary" type="button">Download PNG</button>
-        <button id="downloadInvBtn" class="secondary" type="button">Download Inverted</button>
-      </div>
-
-      <button id="downloadMaskBtn" class="warn" type="button">Download Mask Only</button>
-
-      <p class="status" id="status">Load an image to start.</p>
-    </aside>
-
-    <main class="stage panel">
-      <canvas id="view"></canvas>
-    </main>
+  <div class="tabs-shell">
+    <div class="tabs">
+      <button id="builderTabBtn" class="active" type="button">Mask Builder</button>
+      <button id="extractTabBtn" type="button">Extract Mask</button>
+    </div>
   </div>
+
+  <section id="builderPane" class="tab-pane">
+    <div class="wrap">
+      <aside class="panel">
+        <h1>Mask PNG Builder</h1>
+        <p class="hint">Upload a normal PNG, paint mask area, then export alpha-mask PNG for your ComfyUI LoadImage input.</p>
+
+        <div class="group">
+          <label for="fileInput">Image</label>
+          <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp">
+        </div>
+
+        <div class="group">
+          <label>Tool</label>
+          <div class="tool-toggle">
+            <button id="paintBtn" class="active" type="button">Paint Mask</button>
+            <button id="eraseBtn" type="button">Erase</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <label for="brushSize">Brush Size: <span id="brushSizeValue">48</span> px</label>
+          <input id="brushSize" type="range" min="4" max="280" value="48">
+        </div>
+
+        <div class="group row">
+          <button id="clearBtn" type="button">Clear Mask</button>
+          <button id="fillBtn" type="button">Fill Mask</button>
+        </div>
+
+        <div class="group">
+          <label class="checkbox">
+            <input id="invertPreview" type="checkbox">
+            <span>Invert preview (if mask direction looks opposite)</span>
+          </label>
+        </div>
+
+        <div class="group row">
+          <button id="downloadBtn" class="primary" type="button">Download PNG</button>
+          <button id="downloadInvBtn" class="secondary" type="button">Download Inverted</button>
+        </div>
+
+        <div class="group row">
+          <button id="downloadMaskBtn" class="warn" type="button">Download Mask Only</button>
+          <button id="downloadInvMaskBtn" class="secondary" type="button">Download Inverted Mask Only</button>
+        </div>
+
+        <p class="status" id="status">Load an image to start.</p>
+      </aside>
+
+      <main class="stage panel">
+        <canvas id="view"></canvas>
+      </main>
+    </div>
+  </section>
+
+  <section id="extractPane" class="tab-pane hidden">
+    <div class="wrap">
+      <aside class="panel">
+        <h1>Extract Mask From Alpha</h1>
+        <p class="hint">Upload a PNG that already contains alpha. This tab extracts alpha as grayscale mask output.</p>
+
+        <div class="group">
+          <label for="extractFileInput">Alpha PNG</label>
+          <input id="extractFileInput" type="file" accept="image/png">
+        </div>
+
+        <div class="group">
+          <label class="checkbox">
+            <input id="extractInvertPreview" type="checkbox">
+            <span>Invert preview</span>
+          </label>
+        </div>
+
+        <div class="group row">
+          <button id="downloadExtractMaskBtn" class="warn" type="button">Download Extracted Mask</button>
+          <button id="downloadExtractInvMaskBtn" class="secondary" type="button">Download Extracted Inverted</button>
+        </div>
+
+        <p class="status" id="extractStatus">Load an alpha PNG to extract mask.</p>
+      </aside>
+
+      <main class="stage panel">
+        <canvas id="extractView"></canvas>
+      </main>
+    </div>
+  </section>
 
   <script>
     const fileInput = document.getElementById("fileInput");
@@ -218,15 +279,44 @@
     const downloadBtn = document.getElementById("downloadBtn");
     const downloadInvBtn = document.getElementById("downloadInvBtn");
     const downloadMaskBtn = document.getElementById("downloadMaskBtn");
+    const downloadInvMaskBtn = document.getElementById("downloadInvMaskBtn");
     const invertPreview = document.getElementById("invertPreview");
     const statusEl = document.getElementById("status");
+    const builderTabBtn = document.getElementById("builderTabBtn");
+    const extractTabBtn = document.getElementById("extractTabBtn");
+    const builderPane = document.getElementById("builderPane");
+    const extractPane = document.getElementById("extractPane");
+    const extractFileInput = document.getElementById("extractFileInput");
+    const extractInvertPreview = document.getElementById("extractInvertPreview");
+    const downloadExtractMaskBtn = document.getElementById("downloadExtractMaskBtn");
+    const downloadExtractInvMaskBtn = document.getElementById("downloadExtractInvMaskBtn");
+    const extractStatusEl = document.getElementById("extractStatus");
+    const extractView = document.getElementById("extractView");
+    const extractViewCtx = extractView.getContext("2d");
+    const extractSrcCanvas = document.createElement("canvas");
+    const extractSrcCtx = extractSrcCanvas.getContext("2d", { willReadFrequently: true });
+    const extractMaskCanvas = document.createElement("canvas");
+    const extractMaskCtx = extractMaskCanvas.getContext("2d", { willReadFrequently: true });
 
     let hasImage = false;
+    let hasExtractImage = false;
     let drawing = false;
     let mode = "paint";
 
     function setStatus(msg) {
       statusEl.textContent = msg;
+    }
+
+    function setExtractStatus(msg) {
+      extractStatusEl.textContent = msg;
+    }
+
+    function setTab(nextTab) {
+      const isBuilder = nextTab === "builder";
+      builderPane.classList.toggle("hidden", !isBuilder);
+      extractPane.classList.toggle("hidden", isBuilder);
+      builderTabBtn.classList.toggle("active", isBuilder);
+      extractTabBtn.classList.toggle("active", !isBuilder);
     }
 
     function setTool(nextMode) {
@@ -245,14 +335,20 @@
 
     function drawDot(x, y) {
       const r = Number(brushSize.value) / 2;
+      const baseAlpha = mode === "paint" ? 0.85 : 1;
+      const inner = mode === "paint" ? `rgba(255,255,255,${baseAlpha})` : `rgba(0,0,0,${baseAlpha})`;
+      const outer = mode === "paint" ? "rgba(255,255,255,0)" : "rgba(0,0,0,0)";
       maskCtx.save();
       if (mode === "paint") {
         maskCtx.globalCompositeOperation = "source-over";
-        maskCtx.fillStyle = "rgba(255,255,255,1)";
       } else {
         maskCtx.globalCompositeOperation = "destination-out";
-        maskCtx.fillStyle = "rgba(0,0,0,1)";
       }
+      const g = maskCtx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, inner);
+      g.addColorStop(0.65, inner);
+      g.addColorStop(1, outer);
+      maskCtx.fillStyle = g;
       maskCtx.beginPath();
       maskCtx.arc(x, y, r, 0, Math.PI * 2);
       maskCtx.fill();
@@ -286,7 +382,7 @@
         preview.data[i] = 255;
         preview.data[i + 1] = 60;
         preview.data[i + 2] = 90;
-        preview.data[i + 3] = Math.round(v * 0.45);
+        preview.data[i + 3] = Math.round(v * 0.7);
       }
       overlayCtx.putImageData(preview, 0, 0);
       ctx.drawImage(overlayCanvas, 0, 0);
@@ -322,22 +418,21 @@
       outCanvas.width = imgCanvas.width;
       outCanvas.height = imgCanvas.height;
       const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
-
       outCtx.drawImage(imgCanvas, 0, 0);
-
       const out = outCtx.getImageData(0, 0, outCanvas.width, outCanvas.height);
       const mask = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
 
       for (let i = 0; i < out.data.length; i += 4) {
         const maskAlpha = mask.data[i + 3];
-        out.data[i + 3] = inverted ? 255 - maskAlpha : maskAlpha;
+        const m = inverted ? 255 - maskAlpha : maskAlpha;
+        out.data[i + 3] = m;
       }
 
       outCtx.putImageData(out, 0, 0);
       return outCanvas;
     }
 
-    function buildMaskOnlyPng() {
+    function buildMaskOnlyPng(inverted = false) {
       const outCanvas = document.createElement("canvas");
       outCanvas.width = maskCanvas.width;
       outCanvas.height = maskCanvas.height;
@@ -347,10 +442,11 @@
 
       for (let i = 0; i < out.data.length; i += 4) {
         const a = mask.data[i + 3];
-        out.data[i] = a;
-        out.data[i + 1] = a;
-        out.data[i + 2] = a;
-        out.data[i + 3] = 255;
+        const m = inverted ? 255 - a : a;
+        out.data[i] = m;
+        out.data[i + 1] = m;
+        out.data[i + 2] = m;
+        out.data[i + 3] = m;
       }
       outCtx.putImageData(out, 0, 0);
       return outCanvas;
@@ -364,11 +460,89 @@
       a.click();
     }
 
+    function resizeExtract(width, height) {
+      for (const c of [extractView, extractSrcCanvas, extractMaskCanvas]) {
+        c.width = width;
+        c.height = height;
+      }
+    }
+
+    function buildExtractedMaskPng(inverted = false) {
+      const outCanvas = document.createElement("canvas");
+      outCanvas.width = extractMaskCanvas.width;
+      outCanvas.height = extractMaskCanvas.height;
+      const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
+      const src = extractMaskCtx.getImageData(0, 0, extractMaskCanvas.width, extractMaskCanvas.height);
+      const out = new ImageData(extractMaskCanvas.width, extractMaskCanvas.height);
+      for (let i = 0; i < out.data.length; i += 4) {
+        const a = src.data[i + 3];
+        const m = inverted ? 255 - a : a;
+        out.data[i] = m;
+        out.data[i + 1] = m;
+        out.data[i + 2] = m;
+        out.data[i + 3] = m;
+      }
+      outCtx.putImageData(out, 0, 0);
+      return outCanvas;
+    }
+
+    function renderExtract() {
+      if (!hasExtractImage) {
+        extractViewCtx.clearRect(0, 0, extractView.width, extractView.height);
+        return;
+      }
+      const src = extractMaskCtx.getImageData(0, 0, extractMaskCanvas.width, extractMaskCanvas.height);
+      const out = new ImageData(extractMaskCanvas.width, extractMaskCanvas.height);
+      const inv = extractInvertPreview.checked;
+      for (let i = 0; i < out.data.length; i += 4) {
+        const a = src.data[i + 3];
+        const m = inv ? 255 - a : a;
+        out.data[i] = m;
+        out.data[i + 1] = m;
+        out.data[i + 2] = m;
+        out.data[i + 3] = 255;
+      }
+      extractViewCtx.putImageData(out, 0, 0);
+    }
+
+    function loadExtractImage(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          resizeExtract(img.width, img.height);
+          extractSrcCtx.clearRect(0, 0, extractSrcCanvas.width, extractSrcCanvas.height);
+          extractSrcCtx.drawImage(img, 0, 0);
+          const src = extractSrcCtx.getImageData(0, 0, extractSrcCanvas.width, extractSrcCanvas.height);
+          const out = new ImageData(extractSrcCanvas.width, extractSrcCanvas.height);
+          for (let i = 0; i < out.data.length; i += 4) {
+            const a = src.data[i + 3];
+            out.data[i + 3] = a;
+          }
+          extractMaskCtx.putImageData(out, 0, 0);
+          hasExtractImage = true;
+          renderExtract();
+          setExtractStatus(`Loaded ${file.name} (${img.width}x${img.height}).`);
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
       loadImage(file);
     });
+
+    extractFileInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      loadExtractImage(file);
+    });
+
+    builderTabBtn.addEventListener("click", () => setTab("builder"));
+    extractTabBtn.addEventListener("click", () => setTab("extract"));
 
     brushSize.addEventListener("input", () => {
       brushSizeValue.textContent = brushSize.value;
@@ -394,6 +568,7 @@
     });
 
     invertPreview.addEventListener("change", render);
+    extractInvertPreview.addEventListener("change", renderExtract);
 
     downloadBtn.addEventListener("click", () => {
       if (!hasImage) return;
@@ -411,6 +586,24 @@
       if (!hasImage) return;
       triggerDownload(buildMaskOnlyPng(), "mask-only.png");
       setStatus("Downloaded mask-only.png");
+    });
+
+    downloadInvMaskBtn.addEventListener("click", () => {
+      if (!hasImage) return;
+      triggerDownload(buildMaskOnlyPng(true), "mask-only-inverted.png");
+      setStatus("Downloaded mask-only-inverted.png");
+    });
+
+    downloadExtractMaskBtn.addEventListener("click", () => {
+      if (!hasExtractImage) return;
+      triggerDownload(buildExtractedMaskPng(false), "extracted-mask-only.png");
+      setExtractStatus("Downloaded extracted-mask-only.png");
+    });
+
+    downloadExtractInvMaskBtn.addEventListener("click", () => {
+      if (!hasExtractImage) return;
+      triggerDownload(buildExtractedMaskPng(true), "extracted-mask-only-inverted.png");
+      setExtractStatus("Downloaded extracted-mask-only-inverted.png");
     });
 
     view.addEventListener("pointerdown", (e) => {
