@@ -161,8 +161,8 @@ RUN --mount=type=secret,id=HUGGINGFACE_ACCESS_TOKEN,required=false if [ "$MODEL_
       HF_TOKEN="$(cat /run/secrets/HUGGINGFACE_ACCESS_TOKEN 2>/dev/null || true)" && \
       [ -n "${HF_TOKEN}" ] || { echo "Missing HUGGINGFACE_ACCESS_TOKEN build secret for extendpro"; exit 1; } && \
       wget -q --header="Authorization: Bearer ${HF_TOKEN}" -O models/diffusion_models/flux-2-klein-9b.safetensors https://huggingface.co/black-forest-labs/FLUX.2-klein-9B/resolve/main/flux-2-klein-9b.safetensors && \
-      wget -q -O models/text_encoders/qwen_3_8b.safetensors https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b.safetensors && \
-      wget -q -O models/vae/flux2-vae.safetensors https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/vae/flux2-vae.safetensors; \
+      wget -q -O models/text_encoders/qwen_3_8b.safetensors https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b/resolve/main/split_files/text_encoders/qwen_3_8b.safetensors && \
+      wget -q -O models/vae/flux2-vae.safetensors https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors; \
       if [ -f /tmp/extendpro-assets/pro_extend_000002000.safetensors ]; then \
         cp /tmp/extendpro-assets/pro_extend_000002000.safetensors models/loras/pro_extend_000002000.safetensors; \
       else \
