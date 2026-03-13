@@ -14,7 +14,8 @@ on:
 
 jobs:
   manual_push:
-    runs-on: ubuntu-latest
+    runs-on: [blacksmith-8vcpu-ubuntu-2204, linux]
+    timeout-minutes: 360
     permissions:
       contents: read
 
@@ -29,9 +30,6 @@ jobs:
           rm -rf "/usr/local/share/boost"
           rm -rf "$AGENT_TOOLSDIRECTORY"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -40,6 +38,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: blacksmith docker layer cache
+        uses: useblacksmith/build-push-action@v1
+        with:
+          setup-only: true
 
       - name: Set environment variables
         run: |
